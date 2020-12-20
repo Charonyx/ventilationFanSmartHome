@@ -30,7 +30,7 @@ float RT, VR, ln, TX, T0, VRT;
 unsigned long last_time = 0 , last_time1 = 0;
 ISR(TIMER1_COMPA_vect)
 {
-  if ((TX > 25) && isStopOn == 0) {
+  if ( /*(ldrR == 1 || */(TX > 25) && isStopOn == 0/*&& state == 0*/) {
     state = 1;
   }
 
@@ -40,12 +40,21 @@ ISR(TIMER1_COMPA_vect)
       state = 0;
     }
     isStopOn = true;
+    //    if(state == 1)
+    //    {
+    //      state = 0;
+    //    }
+    //    else state = 1;
   }
 
-  else if (TX <= 25 && isStopOn == 0)
+  else if (TX <= 25 && isStopOn == 0) /*TX <= 25)/*if ((ldrR == 1|| TX <= 25) &&  state == 1) */
   {
     state = 0;
   }
+  else ;
+  //  if (digitalRead(sw) == 0 && state == 1) {
+  //    state = 0;
+  //  }
 }
 void setup()
 {
@@ -55,8 +64,8 @@ void setup()
 
   pinMode(sw, INPUT_PULLUP);
   pinMode(led1, OUTPUT);
-  //pinMode(led2, OUTPUT);
-
+  pinMode(led2, OUTPUT);
+  //pinMode(11, INPUT_PULLUP);
   T0 = 25 + 273.15; //Temperature T0 from datasheet, conversion from Celsius to kelvin
   last_time = millis();
   //interrupt 120 Hz
@@ -78,12 +87,24 @@ void loop()
     hd44780::fatalError(status);
   }
 
+  //////////
+  //  VRT = analogRead(A1);//
+  //  VRT = (5.00 / 1023.00) * VRT;
+  //  VR = VCC - VRT;
+  //  RT = VRT / (VR / R); //Resistance of RT
+  //
+  //  ln = log(RT / RT0);
+  //  TX = (1 / ((ln / B) + (1 / T0))); //Temp from thermistor
+  //
+  //  TX = (TX - 273.15) + 40; //to C
+
   /*
     VRT = 1023-analogRead(A1);
     RT = 10000.0 * (float)(analogRead(A1) /(float)(1023-analogRead(A1)));
     TX = (float)(B*T0)/(float)(B+(25.0*(log (RT)-log (10000))));
     TX = TX - 273.15;
   */
+
   Serial.print("Temperature:");
   Serial.print("\t");
   Serial.println(TX);
@@ -96,21 +117,27 @@ void loop()
 
 
   ////////////////////////////////////////////////// CHECK LDR //////////////////////////////////////////////////
+  //ldrR = 0;
   ldrR = digitalRead(ldr);
   Serial.print("ldrR state: ");
   Serial.println(ldrR);
-  if (ldrR == 1) {
+  if (/*prevldr == 0 && */ldrR == 1) {
+    //state = 1;
+    //Serial.println(ldrR);
     digitalWrite(led2, HIGH); //1
+    //delay(500);
   }
   else {
     digitalWrite(led2, LOW); //0
+    //delay(500);
   }
+  //prevldr = ldrR;
   if (isStopOn == 1)
   {
     Serial.print("HI!");
     last_time1 = millis();
     state = 1;
-    if (millis() - last_time1  >= 360000) // 1000 * 60 * 5 = 360000
+    if (millis() - last_time1  >= 1000)
     {
       state = 0;
       isStopOn = 0;
@@ -119,15 +146,17 @@ void loop()
   Serial.print("STATE: ");
   Serial.println(state);
   lcd.setCursor(5, 0);
-  if (millis() - last_time > 100) 
+  if (millis() - last_time > 100)
   {
     last_time1 = millis();
     VRT = analogRead(A1);//
     VRT = (5.00 / 1023.00) * VRT;
     VR = VCC - VRT;
     RT = VRT / (VR / R); //Resistance of RT
+
     ln = log(RT / RT0);
     TX = (1 / ((ln / B) + (1 / T0))); //Temp from thermistor
+
     TX = (TX - 273.15) + 41; //to C
 
     Serial.print("Temperature:");
@@ -152,4 +181,8 @@ void loop()
     digitalWrite(fan, 1);
     digitalWrite(led1, 1);
   }
+  //  else if (state == 2) {
+  //    Serial.print("eiei");
+  //  }
+
 }
